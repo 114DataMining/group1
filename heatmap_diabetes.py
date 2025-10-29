@@ -29,8 +29,6 @@ sns.heatmap(
 
 # 設置標題，明確指出處理方法
 plt.title('Correlation Heatmap (Using cleaned Data with Pairwise Deletion)')
-plt.show() # 在 Notebook 環境中顯示圖像
-# 如果需要儲存圖像，請取消註解下面一行
 plt.savefig('final_heatmap.png')
 
 # 4. 輸出 Insulin 欄位的關鍵相關性數據
