@@ -1,4 +1,3 @@
-# log_transform_insulin_skin.py
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +18,11 @@ for col in columns:
     df_log[col] = np.where(df[col] <= 0, non_zero_min / 2, df[col])
     df_log[col] = np.log(df_log[col])
 
+# ✅ 儲存 Log 轉換後的資料
+output_csv = "diabetes_log_transformed.csv"
+df_log.to_csv(output_csv, index=False, encoding="utf-8-sig")
+print(f"✅ 已將 Log 轉換後的資料儲存為：{output_csv}")
+
 # 繪圖比較前後分布
 plt.figure(figsize=(10, 6))
 for i, col in enumerate(columns):
@@ -30,6 +34,8 @@ for i, col in enumerate(columns):
     sns.histplot(df_log[col], kde=True, color="orange")
     plt.title(f"{col} - Log轉換後分布")
 
+# ✅ 儲存圖檔
+plt.tight_layout()
 plt.savefig("log_transform_result.png")
 plt.close()
-
+print("📊 圖片已儲存為：log_transform_result.png")
