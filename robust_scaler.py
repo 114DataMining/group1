@@ -26,5 +26,6 @@ for i, col in enumerate(columns):
     sns.histplot(df_scaled[col], kde=True, color="tomato")
     plt.title(f"{col} - RobustScaler後分布")
 
-plt.tight_layout()
-plt.show()
+plt.savefig("robust_scaler_result.png")
+plt.close()
+

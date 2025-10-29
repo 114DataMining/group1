@@ -30,5 +30,6 @@ for i, col in enumerate(columns):
     sns.histplot(df_log[col], kde=True, color="orange")
     plt.title(f"{col} - Log轉換後分布")
 
-plt.tight_layout()
-plt.show()
+plt.savefig("log_transform_result.png")
+plt.close()
+
