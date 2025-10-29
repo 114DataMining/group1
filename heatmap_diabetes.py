@@ -6,7 +6,7 @@ import seaborn as sns
 # 1. 載入原始數據檔案
 file_name = "diabetes_log_transformed.csv"
 try:
-    df_original = pd.read_csv(file_name)
+    df_original = pd.read_csv('diabetes_log_transformed.csv', sep='\t')  # 使用 tab 作為分隔符
 except FileNotFoundError:
     print(f"錯誤：找不到檔案 {file_name}。請確認檔案名稱和路徑是否正確。")
     exit()
