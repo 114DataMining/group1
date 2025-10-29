@@ -41,7 +41,7 @@ sns.heatmap(
 plt.title('Correlation Heatmap (Using cleaned Data with Pairwise Deletion)')
 plt.show() # 在 Notebook 環境中顯示圖像
 # 如果需要儲存圖像，請取消註解下面一行
-# plt.savefig('correlation_original_heatmap.png')
+plt.savefig('final_heatmap.png')
 
 # 5. 輸出 Insulin 欄位的關鍵相關性數據
 print("\n--- Insulin 欄位的關鍵相關性 (與 Outcome 和 Glucose) ---")
