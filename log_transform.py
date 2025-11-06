@@ -13,6 +13,7 @@ columns = ["Insulin", "SkinThickness"]
 df_log = df.copy()
 
 for col in columns:
+    
     non_zero_min = df[df[col] > 0][col].min()
     df_log[col] = np.where(df[col] <= 0, non_zero_min / 2, df[col])
     df_log[col] = np.log(df_log[col])
