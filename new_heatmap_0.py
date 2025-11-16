@@ -3,35 +3,41 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 1. 載入原始數據檔案
-file_name = "diabetes_outcome_0.csv"
-try:
-    df_original = pd.read_csv('diabetes_outcome_0.csv', sep='\t')  # 使用 tab 作為分隔符
-except FileNotFoundError:
-    print(f"錯誤：找不到檔案 {file_name}。請確認檔案名稱和路徑是否正確。")
-    exit()
+# 1. 載入原始資料
+df = pd.read_csv("diabetes_with_log_values.csv")  # 用完整資料才看得出差異！
+
+# 2. 依照 Outcome 分組
+df0 = df[df["Outcome"] == 0].drop(columns=["Outcome"])
+df1 = df[df["Outcome"] == 1].drop(columns=["Outcome"])
+
+# 3. 分別計算相關係數矩陣
+corr0 = df0.corr(method='pearson')
+corr1 = df1.corr(method='pearson')
 
 
-# 2. 計算相關係數矩陣 (Pandas會自動使用成對刪除處理NaN)
-# method='pearson' 是計算線性關係的標準方法
-correlation_matrix = df_original.corr(method='pearson')
-
-# 3. 繪製相關性熱力圖
+# 4. 畫 Outcome=0 熱力圖
 plt.figure(figsize=(10, 8))
 sns.heatmap(
-    correlation_matrix, 
-    annot=True, # 顯示相關係數數值
-    fmt=".2f",  # 數值保留兩位小數
-    cmap='coolwarm', # 使用藍紅色系熱圖
-    linewidths=.5, # 增加格子線
-    cbar_kws={'label': 'Pearson Correlation Coefficient'}
+    corr0,
+    annot=True,
+    fmt=".2f",
+    cmap="coolwarm",
+    linewidths=.5
 )
+plt.title("Correlation Heatmap (Outcome = 0)")
+plt.savefig("heatmap_outcome_0.png")
+plt.show()
 
-# 設置標題，明確指出處理方法
-plt.title('Correlation Heatmap (Using cleaned Data with Pairwise Deletion)')
-plt.savefig('new_heatmap_0.png')
 
-# 4. 輸出 Insulin 欄位的關鍵相關性數據
-print("\n--- Insulin 欄位的關鍵相關性 (與 Outcome 和 Glucose) ---")
-print(correlation_matrix[['Insulin', 'Outcome', 'Glucose']].loc['Insulin'].drop('Insulin'))
-print("----------------------------------------------------------")
+# 5. 畫 Outcome=1 熱力圖
+plt.figure(figsize=(10, 8))
+sns.heatmap(
+    corr1,
+    annot=True,
+    fmt=".2f",
+    cmap="coolwarm",
+    linewidths=.5
+)
+plt.title("Correlation Heatmap (Outcome = 1)")
+plt.savefig("heatmap_outcome_1.png")
+plt.show()
