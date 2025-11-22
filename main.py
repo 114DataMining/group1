@@ -35,6 +35,7 @@ for col in cols_to_impute:
 
 # --- 步驟 2: 執行資料清理 (替換 0 為中位數) ---
 # 將原始 df 中的 0 值替換為 NaN
+
 df[cols_to_impute] = df[cols_to_impute].replace(0, np.nan)
 
 # 使用計算出的中位數填充缺失值 (NaN)
