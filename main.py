@@ -35,6 +35,7 @@ for col in cols_to_impute:
 
 # --- 步驟 2: 執行資料清理 (替換 0 為中位數) ---
 # 將原始 df 中的 0 值替換為 NaN
+
 df[cols_to_impute] = df[cols_to_impute].replace(0, np.nan)
 
 # 使用計算出的中位數填充缺失值 (NaN)
@@ -47,4 +48,4 @@ final_zeros = df[cols_to_impute].eq(0).sum()
 print(final_zeros)
 
 # 將清理後的資料儲存為新的 CSV 檔案
-df.to_csv('diabetes_cleaned_before_after_zeros.csv', index=False)
+df.to_csv('diabetes_cleaned_before_after_zeros111.csv', index=False)
