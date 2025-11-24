@@ -1,10 +1,13 @@
 import pandas as pd
 
 # 讀取資料
-df = pd.read_csv("diabetes_cleaned_before_after_zeros.csv")
+df = pd.read_csv("diabetes_processed_missing.csv")
+
+# 建立一份副本來移除離群值
+df_no_outliers = df.copy()
 
 # 要分析的欄位
-columns = ["Pregnancies", "Glucose", "BloodPressure", "BMI", "DiabetesPedigreeFunction", "Age"]
+columns = ["Glucose", "BloodPressure", "BMI", "SkinThickness"]
 
 # 建立總表用的空清單
 all_outliers = []
@@ -45,6 +48,9 @@ for column in columns:
 
         # 加入總表
         all_outliers.append(outliers_to_save)
+
+        # 🚨**從資料中刪除這些離群值**
+        df_no_outliers = df_no_outliers[~df_no_outliers.index.isin(index_list)]
     else:
         print("沒有離群值。")
 
@@ -56,3 +62,7 @@ if all_outliers:
     print("\n✅ 所有欄位離群值已輸出至：all_outliers_summary.csv")
 else:
     print("\n🎉 所有欄位都沒有離群值。")
+
+# 🚨　**輸出刪除離群值後的新資料**
+df_no_outliers.to_csv("diabetes_no_outliers.csv", index=False, encoding="utf-8-sig")
+print("\n✅ 已輸出刪除離群值後的新檔案：diabetes_no_outliers.csv")
