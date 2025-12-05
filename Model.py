@@ -22,7 +22,15 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # 4. 建立 Random Forest（預設參數 = Baseline）
-rf = RandomForestClassifier(random_state=42)
+rf = RandomForestClassifier(
+    n_estimators=50,  # 樹的數量
+    max_depth=10,      # 樹的最大深度
+    min_samples_split=4,
+    min_samples_leaf=2,
+    max_features="sqrt",
+    class_weight="balanced",  # 讓模型更重視「有病」這類
+    random_state=42
+)
 rf.fit(X_train, y_train)
 
 # 5. 預測
