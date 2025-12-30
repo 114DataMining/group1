@@ -1,150 +1,136 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    roc_auc_score, accuracy_score, precision_score, recall_score, 
-    f1_score, confusion_matrix, classification_report, roc_curve
-)
+from sklearn.metrics import confusion_matrix
 
 # ===== 1. 讀取資料 =====
+# 請確認你的檔案路徑是否正確，若有報錯請改回絕對路徑
 df = pd.read_csv("diabetes_skinthickness_knn_imputed.csv")
-target = "Outcome"  # 目標變數：0=沒有糖尿病, 1=有糖尿病
+target = "Outcome"
 
 # ===== 2. 分離特徵與目標變數 =====
-X = df.drop(columns=[target])  # 特徵（所有輸入變數）
-y = df[target]                  # 目標（要預測的結果）
+X = df.drop(columns=[target])
+y = df[target]
 
 # ===== 3. 切分訓練集與測試集 =====
+# 使用 stratify=y 確保訓練集和測試集的比例跟原始資料一樣
 X_train, X_test, y_train, y_test = train_test_split(
     X, y,
-    test_size=0.2,      # 80%訓練，20%測試
-    random_state=42,    # 固定亂數種子，確保結果可重現
-    stratify=y          # 保持訓練集與測試集中正負樣本的比例一致
+    test_size=0.2,
+    random_state=42,
+    stratify=y
 )
 
-print(f"訓練集大小: {len(X_train)}, 測試集大小: {len(X_test)}")
-print(f"訓練集中 Outcome=1 的比例: {y_train.sum()/len(y_train):.2%}")
+# ==========================================
+# ★ [新增] 3.5 統計並印出訓練集的類別分佈
+# ==========================================
+train_counts = y_train.value_counts().sort_index() # 確保 0 在前 1 在後
+train_total = len(y_train)
 
-# ===== 4. 設定參數網格（用於尋找最佳參數組合）=====
+print("\n[統計] 訓練集 (Training Set) 類別分佈狀況:")
+print("=" * 50)
+print(f"訓練集總筆數: {train_total}")
+
+# 取得 0 和 1 的數量 (使用 .get 以防萬一某類別完全沒出現)
+count_0 = train_counts.get(0, 0)
+count_1 = train_counts.get(1, 0)
+
+# 計算比例
+ratio_0 = count_0 / train_total
+ratio_1 = count_1 / train_total
+
+print(f"類別 0 (沒病): {count_0:<5} 筆 | 占比: {ratio_0:.2%}")
+print(f"類別 1 (有病): {count_1:<5} 筆 | 占比: {ratio_1:.2%}")
+print("-" * 50)
+
+# 簡單判斷不平衡程度
+imbalance_ratio = count_0 / count_1 if count_1 > 0 else 0
+print(f" 資料不平衡比例 (0 vs 1) 約為: {imbalance_ratio:.1f} : 1")
+if imbalance_ratio > 3:
+    print("   (警告: 資料嚴重不平衡，建議使用 class_weight='balanced' 或 SMOTE)")
+else:
+    print("   (資料分佈尚可，通常不需要激進的平衡手段)")
+print("=" * 50)
+
+
+# ===== 4. 設定參數網格 =====
 param_grid = {
-    'n_estimators':[50,80,100,150],      # 增加樹的數量
-    'max_depth': [4, 5, 6, 7, 8],            # 改為保守範圍
-    'min_samples_leaf': [2, 4, 8],        # 提高最小值
-    'min_samples_split': [10, 20],        # 新增：控制分裂條件
-    'class_weight': ['balanced', {0:1, 1:2}]
+    'n_estimators': [50, 100],
+    'max_depth': [4, 6, 8],
+    'min_samples_leaf': [2, 4],
+    'class_weight': ['balanced', None]
 }
 
-# ===== 5. 建立基礎模型 =====
+# 建立基礎模型
 rf = RandomForestClassifier(random_state=42)
 
-# ===== 6. 使用 GridSearchCV 尋找最佳參數 =====
-print("\n開始尋找最佳參數組合...")
+# ===== 5. 先跑一次 GridSearch 找出最佳參數 =====
+print("\n正在尋找最佳參數中...")
 grid_search = GridSearchCV(
-    estimator=rf,           # 要優化的模型
-    param_grid=param_grid,  # 參數搜尋範圍
-    cv=5,                   # 5折交叉驗證（將訓練集分5份，輪流當驗證集）
-    scoring='f1',           # 優化目標：F1-Score（Precision與Recall的調和平均）
-    n_jobs=-1,              # 使用所有CPU核心加速
-    verbose=1               # 顯示進度
+    estimator=rf,
+    param_grid=param_grid,
+    cv=5,
+    scoring='f1',
+    n_jobs=-1
+)
+grid_search.fit(X_train, y_train)
+best_rf = grid_search.best_estimator_
+
+print(f"最佳參數: {grid_search.best_params_}")
+print("-" * 60)
+
+# ===== 5.5 計算測試集混淆矩陣 (純數值) =====
+print("\n[新增] 測試集 (Hold-out Test Set) 混淆矩陣數據:")
+
+y_pred_test = best_rf.predict(X_test)
+tn, fp, fn, tp = confusion_matrix(y_test, y_pred_test).ravel()
+
+print(f"{'類別':<15} | {'預測: 0 (沒病)':<15} | {'預測: 1 (有病)':<15}")
+print("-" * 50)
+print(f"{'實際: 0 (沒病)':<15} | {tn:<15} | {fp:<15} (誤判有病)")
+print(f"{'實際: 1 (有病)':<15} | {fn:<15} | {tp:<15} (抓出有病)")
+print("-" * 50)
+print(f"True Negative (TN): {tn}")
+print(f"False Positive (FP): {fp}")
+print(f"False Negative (FN): {fn}")
+print(f"True Positive (TP): {tp}")
+print("-" * 60)
+
+# ===== 6. 核心步驟：執行 5 折交叉驗證 =====
+scoring_metrics = {
+    'accuracy': 'accuracy',
+    'f1': 'f1',
+    'auc': 'roc_auc'
+}
+
+print("\n🚀 開始執行 5 折交叉驗證 (詳細數據分析)...")
+
+cv_results = cross_validate(
+    best_rf, 
+    X_train, 
+    y_train, 
+    cv=5, 
+    scoring=scoring_metrics,
+    return_train_score=True,
+    n_jobs=-1
 )
 
-grid_search.fit(X_train, y_train)
+# ===== 7. 定義輸出格式函式 =====
+def print_custom_format(set_name, acc_list, auc_list, f1_list):
+    print(f"\n===== {set_name} Set 5-Fold CV =====")
+    
+    for i in range(5):
+        print(f"Fold {i+1}: Accuracy={acc_list[i]:.4f}, AUC={auc_list[i]:.4f}, F1={f1_list[i]:.4f}")
+    
+    acc_mean, acc_std = np.mean(acc_list), np.std(acc_list)
+    auc_mean, auc_std = np.mean(auc_list), np.std(auc_list)
+    f1_mean, f1_std = np.mean(f1_list), np.std(f1_list)
+    
+    print(f"{set_name} Set Average: Accuracy={acc_mean:.4f} ± {acc_std:.4f}, AUC={auc_mean:.4f} ± {auc_std:.4f}, F1={f1_mean:.4f} ± {f1_std:.4f}")
 
-# ===== 7. 取得最佳模型 =====
-best_rf = grid_search.best_estimator_
-print(f"\n✅ 最佳參數組合: {grid_search.best_params_}")
-print(f"✅ 訓練時最佳 F1-Score: {grid_search.best_score_:.4f}")
+# ===== 8. 輸出結果 =====
+print_custom_format("Training", cv_results['train_accuracy'], cv_results['train_auc'], cv_results['train_f1'])
+print_custom_format("Test", cv_results['test_accuracy'], cv_results['test_auc'], cv_results['test_f1'])
 
-# ===== 8. 使用最佳模型進行預測 =====
-y_pred_prob = best_rf.predict_proba(X_test)[:, 1]  # 預測為1的機率
-
-# 預設閾值 0.5 的預測結果
-y_pred_default = best_rf.predict(X_test)
-
-# 自訂閾值 0.6 的預測結果
-custom_threshold = 0.6
-y_pred_custom = (y_pred_prob >= custom_threshold).astype(int)
-
-# ===== 9. 計算兩種閾值的評估指標 =====
-print("\n" + "="*60)
-print("📊 Random Forest 模型評估結果比較")
-print("="*60)
-
-# --- 預設閾值 0.5 ---
-print("\n【預設閾值 0.5】")
-accuracy_default = accuracy_score(y_test, y_pred_default)
-precision_default = precision_score(y_test, y_pred_default, pos_label=1)
-recall_default = recall_score(y_test, y_pred_default, pos_label=1)
-f1_default = f1_score(y_test, y_pred_default, pos_label=1)
-
-print(f"Accuracy  (準確率):   {accuracy_default:.4f}")
-print(f"Precision (精確率):   {precision_default:.4f}  ← 預測為「有病」中真的有病的比例")
-print(f"Recall    (召回率):   {recall_default:.4f}  ← 實際有病的人中被找出來的比例")
-print(f"F1-Score  (F1分數):   {f1_default:.4f}")
-
-cm_default = confusion_matrix(y_test, y_pred_default)
-print("\n混淆矩陣:")
-print("           預測: 0    預測: 1")
-print(f"實際: 0   {cm_default[0,0]:4d}      {cm_default[0,1]:4d}   (TN / FP)")
-print(f"實際: 1   {cm_default[1,0]:4d}      {cm_default[1,1]:4d}   (FN / TP)")
-
-# --- 自訂閾值 0.6 ---
-print("\n" + "="*60)
-print("【自訂閾值 0.6】（提高精確率，降低誤報）")
-accuracy_custom = accuracy_score(y_test, y_pred_custom)
-precision_custom = precision_score(y_test, y_pred_custom, pos_label=1)
-recall_custom = recall_score(y_test, y_pred_custom, pos_label=1)
-f1_custom = f1_score(y_test, y_pred_custom, pos_label=1)
-
-print(f"Accuracy  (準確率):   {accuracy_custom:.4f}")
-print(f"Precision (精確率):   {precision_custom:.4f}  ← 預測為「有病」中真的有病的比例 ⬆️")
-print(f"Recall    (召回率):   {recall_custom:.4f}  ← 實際有病的人中被找出來的比例 ⬇️")
-print(f"F1-Score  (F1分數):   {f1_custom:.4f}")
-
-cm_custom = confusion_matrix(y_test, y_pred_custom)
-print("\n混淆矩陣:")
-print("           預測: 0    預測: 1")
-print(f"實際: 0   {cm_custom[0,0]:4d}      {cm_custom[0,1]:4d}   (TN / FP)")
-print(f"實際: 1   {cm_custom[1,0]:4d}      {cm_custom[1,1]:4d}   (FN / TP)")
-
-# AUC 不受閾值影響
-auc = roc_auc_score(y_test, y_pred_prob)
-print(f"\nAUC (曲線下面積): {auc:.4f}  ← 不受閾值影響")
-
-# ===== 10. 完整分類報告（使用閾值 0.6）=====
-print("\n" + "="*60)
-print("📄 完整分類報告（閾值 0.6）:")
-print("="*60)
-print(classification_report(y_test, y_pred_custom, target_names=['無糖尿病(0)', '有糖尿病(1)']))
-
-# ===== 11. 繪製 ROC 曲線 =====
-fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
-
-plt.figure(figsize=(10, 6))
-plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {auc:.4f})')
-plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random Guess')
-
-# 標記閾值 0.5 和 0.6 的位置
-idx_05 = np.argmin(np.abs(thresholds - 0.5))
-idx_07 = np.argmin(np.abs(thresholds - 0.6))
-plt.scatter(fpr[idx_05], tpr[idx_05], color='blue', s=100, zorder=5, label='Threshold = 0.5')
-plt.scatter(fpr[idx_07], tpr[idx_07], color='red', s=100, zorder=5, label='Threshold = 0.6')
-
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate (假陽性率)', fontsize=12)
-plt.ylabel('True Positive Rate (真陽性率/Recall)', fontsize=12)
-plt.title('ROC Curve - Random Forest 糖尿病預測模型', fontsize=14, fontweight='bold')
-plt.legend(loc="lower right", fontsize=10)
-plt.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-print("\n✨ 分析完成！")
-print("\n💡 解讀:")
-print("   • 閾值從 0.5 提高到 0.6 後：")
-print("   • Precision ⬆️ (精確率提高 - 減少誤報，預測有病時更可靠)")
-print("   • Recall ⬇️ (召回率降低 - 漏掉一些真正有病的患者)")
-print("   • 適用場景：希望減少「誤診為有病」的情況時使用")
+print("\n" + "="*50)

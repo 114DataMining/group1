@@ -4,10 +4,10 @@ from sklearn.preprocessing import MinMaxScaler
 # 1. 讀取你的資料
 df = pd.read_csv("diabetes_no_outliers.csv")
 
-# 2. 建立 MinMaxScaler（將數值壓到 0–1）
+# 2. 建立 MinMaxScaler（將數值壓到[0, 1]）
 scaler = MinMaxScaler()
 
-# 3. 只對「數值欄位」做標準化
+# 3. 只對「數值欄位」做正規化
 exclude_cols = ['Pregnancies', 'Outcome']
 numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
 numeric_cols = numeric_cols.difference(exclude_cols)
