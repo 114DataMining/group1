@@ -4,17 +4,14 @@ import seaborn as sns
 import numpy as np
 
 # 基底檔案名稱 (已填充 0 值的中位數)
-FILE_NAME_BASE = 'diabetes_cleaned_before_after_zeros.csv' 
+FILE_NAME_BASE = 'diabetes_processed_missing.csv' 
 
 # 需要繪製盒鬚圖的欄位 (所有曾有 0 值並被填充的特徵)
 cols_for_boxplot = [
     'Glucose',
     'BloodPressure',
     'SkinThickness',
-    'Insulin',
-    'BMI',
-    'DiabetesPedigreeFunction',
-    'Age'
+    'BMI'
 ]
 
 # 1. 載入資料
@@ -31,7 +28,7 @@ sns.set_style("whitegrid")
 plt.figure(figsize=(15, 10))
 plt.suptitle("各欄位原始盒鬚圖 (已填充 0 值，未限制異常值)", fontsize=16)
 
-# 設置 3x3 的子圖佈局來容納 7 個圖
+# 設置 3x3 的子圖佈局來容納 4 個圖
 for i, col in enumerate(cols_for_boxplot):
     plt.subplot(3, 3, i + 1)
     # Seaborn 預設會顯示所有極端異常值 (小圓點)
@@ -42,7 +39,7 @@ for i, col in enumerate(cols_for_boxplot):
 plt.tight_layout(rect=[0, 0, 1, 0.96])
 
 # 儲存圖表檔案
-BOXPLOT_FILE_NAME = 'unrestricted_boxplots.png'
+BOXPLOT_FILE_NAME = 'new_boxplots.png'
 plt.savefig(BOXPLOT_FILE_NAME)
 plt.close()
 
