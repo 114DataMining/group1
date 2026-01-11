@@ -48,4 +48,4 @@ final_zeros = df[cols_to_impute].eq(0).sum()
 print(final_zeros)
 
 # 將清理後的資料儲存為新的 CSV 檔案
-df.to_csv('diabetes_cleaned_before_after_zeros.csv', index=False)
+df.to_csv('diabetes_cleaned_before_after_zeros111.csv', index=False)
